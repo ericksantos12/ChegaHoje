@@ -216,7 +216,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # sqlite
-encomendas.db
+database/*
 
 # User-specific stuff
 .idea/**/workspace.xml

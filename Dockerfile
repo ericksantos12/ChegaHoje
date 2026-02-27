@@ -1,19 +1,20 @@
-FROM python:3.11-slim
+FROM python:3.11-slim as build
 
-# seta o diretorio de trabalho
 WORKDIR /app
-
-# evita que o python crie arquivos .pyc e forca o log a aparecer na hora no terminal
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
 
-# instala as dependencias direto na imagem
 RUN pip install --no-cache-dir -r requirements.txt
 
-# copia o codigo do bot pro container
-COPY main.py .
+FROM python:3.11-slim as runtime
 
-# comando final pra ligar o bot
+WORKDIR /app
+
+COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+
+COPY . .
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 CMD ["python", "main.py"]

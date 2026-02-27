@@ -9,4 +9,7 @@ services:
       TZ: "America/Sao_Paulo"
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
     volumes:
-      - ./:/app
+      - database:/database
+
+volumes:
+    database:

@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 
 def setup_db():
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS encomendas (
@@ -81,7 +81,7 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO encomendas (chat_id, item, data) VALUES (?, ?, ?)",
@@ -98,7 +98,7 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
 
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         # o db ja traz ordenado pela data mais proxima pq salvamos como YYYY-MM-DD
         cursor.execute(
@@ -130,7 +130,7 @@ async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
 
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, item, data FROM encomendas WHERE chat_id = ? ORDER BY data ASC",
@@ -172,7 +172,7 @@ async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
     id_db = item_selecionado[0]
     nome_item = item_selecionado[1]
 
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM encomendas WHERE id = ?", (id_db,))
         conn.commit()
@@ -188,7 +188,7 @@ async def checar_entregas(context: ContextTypes.DEFAULT_TYPE):
     amanha_db = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
     amanha_br = (datetime.now() + timedelta(days=1)).strftime('%d/%m/%Y')
 
-    with sqlite3.connect("encomendas.db") as conn:
+    with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT chat_id, item FROM encomendas WHERE data = ?",
