@@ -9,7 +9,7 @@ services:
       TZ: "America/Sao_Paulo"
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
     volumes:
-      - database:/database
+      - chegahoje_database:/database
 
 volumes:
-    database:
+    chegahoje_database:

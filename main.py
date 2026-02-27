@@ -16,6 +16,10 @@ logging.basicConfig(
 )
 
 def setup_db():
+    if not os.path.exists("database"):
+        os.makedirs("database")
+        logging.info("pasta 'database' criada.")
+
     with sqlite3.connect("database/encomendas.db") as conn:
         cursor = conn.cursor()
         cursor.execute('''
