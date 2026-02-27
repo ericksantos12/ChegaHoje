@@ -1,0 +1,11 @@
+services:
+  chegahoje_bot:
+    build: .
+    container_name: chegahoje_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ./:/app
