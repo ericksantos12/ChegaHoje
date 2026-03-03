@@ -1,12 +1,13 @@
 import logging
 import os
 import sys
-import sqlite3
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
+from db.init_db import init_db
+from repositories.encomendas import SqlAlchemyEncomendaRepository
 
 load_dotenv()
 
@@ -15,23 +16,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-def setup_db():
-    if not os.path.exists("database"):
-        os.makedirs("database")
-        logging.info("pasta 'database' criada.")
-
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS encomendas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chat_id TEXT NOT NULL,
-                item TEXT NOT NULL,
-                data TEXT NOT NULL
-            )
-        ''')
-        conn.commit()
-        logging.info("banco de dados sqlite inicializado com sucesso. poggers!")
+repo = SqlAlchemyEncomendaRepository()
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -60,7 +45,7 @@ Duvidas ou feedbacks só direcionar ao meu chefe @ericksantos12
 
 
 async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    chat_id = update.effective_chat.id
 
     texto_comando = ' '.join(context.args)
     if not texto_comando or '-' not in texto_comando:
@@ -75,9 +60,7 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data_str = partes[1].strip()
 
     try:
-        # valida a data do usuario e converte pro padrao do banco pra ordenacao nativa
-        data_obj = datetime.strptime(data_str, '%d/%m/%Y')
-        data_db = data_obj.strftime('%Y-%m-%d')
+        data_obj = datetime.strptime(data_str, '%d/%m/%Y').date()
     except ValueError:
         await context.bot.send_message(
             chat_id=chat_id,
@@ -85,13 +68,7 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO encomendas (chat_id, item, data) VALUES (?, ?, ?)",
-            (chat_id, item, data_db)
-        )
-        conn.commit()
+    repo.add(chat_id=chat_id, item=item, data=data_obj)
 
     await context.bot.send_message(
         chat_id=chat_id,
@@ -100,16 +77,9 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    chat_id = update.effective_chat.id
 
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        # o db ja traz ordenado pela data mais proxima pq salvamos como YYYY-MM-DD
-        cursor.execute(
-            "SELECT item, data FROM encomendas WHERE chat_id = ? ORDER BY data ASC",
-            (chat_id,)
-        )
-        rows = cursor.fetchall()
+    rows = repo.list_by_chat(chat_id)
 
     if not rows:
         await context.bot.send_message(
@@ -119,11 +89,9 @@ async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     mensagem = "===== ENCOMENDAS =====\n\n"
-    for index, row in enumerate(rows, start=1):
-        item = row[0]
-        # converte de volta pro padrao br pra mostrar na tela
-        data_br = datetime.strptime(row[1], '%Y-%m-%d').strftime('%d/%m/%Y')
-        mensagem += f"{index}. 📦 {item}\n    📅 Previsão: {data_br}\n\n"
+    for index, encomenda in enumerate(rows, start=1):
+        data_br = encomenda.data.strftime('%d/%m/%Y')
+        mensagem += f"{index}. 📦 {encomenda.item}\n    📅 Previsão: {data_br}\n\n"
 
     await context.bot.send_message(
         chat_id=chat_id,
@@ -132,15 +100,9 @@ async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+    chat_id = update.effective_chat.id
 
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, item, data FROM encomendas WHERE chat_id = ? ORDER BY data ASC",
-            (chat_id,)
-        )
-        rows = cursor.fetchall()
+    rows = repo.list_by_chat(chat_id)
 
     if not rows:
         await context.bot.send_message(
@@ -172,44 +134,29 @@ async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    item_selecionado = rows[indice - 1]
-    id_db = item_selecionado[0]
-    nome_item = item_selecionado[1]
-
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM encomendas WHERE id = ?", (id_db,))
-        conn.commit()
+    encomenda_selecionada = rows[indice - 1]
+    repo.remove_by_id(encomenda_selecionada.id)
 
     await context.bot.send_message(
         chat_id=chat_id,
-        text=f"🗑️ mandou pro ralo!\n\no pacote 📦 '{nome_item}' foi removido da lista com sucesso."
+        text=f"🗑️ mandou pro ralo!\n\no pacote 📦 '{encomenda_selecionada.item}' foi removido da lista com sucesso."
     )
 
 
 async def checar_entregas(context: ContextTypes.DEFAULT_TYPE):
-    # busca pelo formato YYYY-MM-DD pq eh assim q ta no banco
-    amanha_db = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-    amanha_br = (datetime.now() + timedelta(days=1)).strftime('%d/%m/%Y')
+    amanha = (datetime.now() + timedelta(days=1)).date()
+    amanha_br = amanha.strftime('%d/%m/%Y')
 
-    with sqlite3.connect("database/encomendas.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT chat_id, item FROM encomendas WHERE data = ?",
-            (amanha_db,)
-        )
-        rows = cursor.fetchall()
+    rows = repo.list_by_date(amanha)
 
-    for row in rows:
-        chat_id = row[0]
-        item = row[1]
+    for encomenda in rows:
         try:
             await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{item}' tá previsto pra chegar AMANHÃ ({amanha_br})!\n\nFiquem espertos pra receber o carteiro."
+                chat_id=encomenda.chat_id,
+                text=f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{encomenda.item}' tá previsto pra chegar AMANHÃ ({amanha_br})!\n\nFiquem espertos pra receber o carteiro."
             )
         except Exception as e:
-            logging.error(f"erro ao mandar msg pro chat {chat_id}: {e}")
+            logging.error(f"erro ao mandar msg pro chat {encomenda.chat_id}: {e}")
 
 
 async def testar_alerta(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -227,7 +174,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # prepara o banco de dados antes do bot ligar
-    setup_db()
+    init_db()
 
     app = ApplicationBuilder().token(token).build()
 
