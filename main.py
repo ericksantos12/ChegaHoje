@@ -195,7 +195,6 @@ async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def checar_entregas(context: ContextTypes.DEFAULT_TYPE):
-    print("cheguei na rotina diária de checar entregas...")
     # busca pelo formato YYYY-MM-DD pq eh assim q ta no banco
     fuso_sp = ZoneInfo(os.getenv("TIME_ZONE", "America/Sao_Paulo"))
     agora_sp = datetime.now(fuso_sp)
@@ -204,7 +203,6 @@ async def checar_entregas(context: ContextTypes.DEFAULT_TYPE):
     encomendas_repo = SAEncomenda()
 
     rows = encomendas_repo.get_by_date(date=amanha_db)
-    print(rows)
     for row in rows:
         chat_id = row.chat_id
         item = row.item
