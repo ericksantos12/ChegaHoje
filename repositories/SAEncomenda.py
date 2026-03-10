@@ -11,7 +11,7 @@ logging = logger(__name__)
 
 class SAEncomenda(EncomendaRepository):
 
-    def create(self, chat_id: int, item: str, data: date, dono: str = "Sem dono") -> tuple[Encomenda, bool] | tuple[None, bool]:
+    def create(self, chat_id: int, item: str, data: date, dono: str = "Sem dono") -> tuple[Optional[Encomenda], bool]:
         with SessionLocal() as session:
             try:
                 encomenda = Encomenda(chat_id=chat_id, item=item, data=data, dono=dono)

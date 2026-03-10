@@ -12,7 +12,7 @@ class EncomendaRepository(Protocol):
         item: str,
         data: date,
         dono: str = "Sem dono",
-    ) -> tuple[Encomenda, bool]:
+    ) -> tuple[Optional[Encomenda], bool]:
         """Returns (encomenda, created)."""
         ...
 
