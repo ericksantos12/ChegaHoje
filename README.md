@@ -53,7 +53,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (Recommended)
-- [Python 3.12+](https://www.python.org/downloads/) (For local non-docker setup)
+- [Python 3.11+](https://www.python.org/downloads/) (For local non-docker setup)
 - A Telegram Bot Token (Get one from [@BotFather](https://t.me/BotFather))
 
 ### Environment Variables
