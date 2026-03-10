@@ -1,6 +1,6 @@
 <p align="center">
   <a href="" rel="noopener">
- <img width=200px height=200px src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/2048px-Telegram_logo.svg.png" alt="Bot logo"></a>
+ <img width=200px height=200px src="https://i.imgur.com/6yutiN1.png" alt="Bot logo"></a>
 </p>
 
 <h3 align="center">ChegaHoje Bot</h3>
