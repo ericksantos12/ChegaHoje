@@ -93,6 +93,15 @@ TIME_ZONE=America/Sao_Paulo
    python main.py
    ```
 
+### Running Unit Tests
+The project uses Python's built-in `unittest` framework for the usecase test suite. To run the tests:
+
+```bash
+python -m unittest discover -s tests
+```
+
+The unit tests use mocks for Telegram and repository interactions, so they do not require a running PostgreSQL instance.
+
 ## 🎈 Usage <a name = "usage"></a>
 
 Once the bot is running, you can interact with it on Telegram using the following commands:
@@ -132,4 +141,3 @@ You can use `watchtower` or similar tools to automate updates if needed.
 
 ## 🎉 Acknowledgements <a name = "acknowledgement"></a>
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) community
-
