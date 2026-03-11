@@ -33,9 +33,11 @@ async def remover_encomenda(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         return
 
     if indice < 1 or indice > len(rows):
+        quantidade = len(rows)
+        sufixo = "item" if quantidade == 1 else "itens"
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"tá viajando? só tem {len(rows)} itens na lista. digita um número válido."
+            text=f"tá viajando? só tem {quantidade} {sufixo} na lista. digita um número válido."
         )
         return
 
@@ -56,4 +58,3 @@ async def remover_encomenda(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         chat_id=chat_id,
         text=f"🗑️ mandou pro ralo!\n\no pacote 📦 '{nome_item}' foi removido da lista com sucesso."
     )
-

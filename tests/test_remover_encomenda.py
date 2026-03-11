@@ -63,7 +63,7 @@ class RemoverEncomendaTests(IsolatedAsyncioTestCase):
         repository.remove.assert_not_called()
         context.bot.send_message.assert_awaited_once_with(
             chat_id=123,
-            text="tá viajando? só tem 1 itens na lista. digita um número válido.",
+            text="tá viajando? só tem 1 item na lista. digita um número válido.",
         )
 
     async def test_deve_avisar_quando_repositorio_nao_remover(self):
