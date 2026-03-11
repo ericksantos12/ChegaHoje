@@ -59,7 +59,7 @@ class SAEncomenda(EncomendaRepository):
     def get_by_chat_id(self, chat_id: int) -> list[Encomenda]:
         with SessionLocal() as session:
             try:
-                encomendas = session.query(Encomenda).filter_by(chat_id=chat_id).all()
+                encomendas = session.query(Encomenda).filter_by(chat_id=chat_id).order_by(Encomenda.data.asc(), Encomenda.id.asc()).all()
                 return encomendas
             except SQLAlchemyError as e:
                 session.rollback()
