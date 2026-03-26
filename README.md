@@ -94,13 +94,13 @@ TIME_ZONE=America/Sao_Paulo
    ```
 
 ### Running Unit Tests
-The project uses Python's built-in `unittest` framework for the usecase test suite. To run the tests:
+The project uses `pytest` for the usecase test suite. To run the tests:
 
 ```bash
-python -m unittest discover -s tests
+pytest -q
 ```
 
-The unit tests use mocks for Telegram and repository interactions, so they do not require a running PostgreSQL instance.
+The unit tests use Telegram mocks plus an in-memory repository, so they do not require a running PostgreSQL instance.
 
 ## 🎈 Usage <a name = "usage"></a>
 

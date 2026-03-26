@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as Date
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -21,6 +21,6 @@ def make_row(
     encomenda_id: int = 1,
     chat_id: int = 123,
     item: str = "Pacote",
-    delivery_date: date = date(2026, 3, 12),
+    delivery_date: Date = Date(2026, 3, 12),
 ) -> SimpleNamespace:
     return SimpleNamespace(id=encomenda_id, chat_id=chat_id, item=item, data=delivery_date)
