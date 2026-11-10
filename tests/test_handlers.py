@@ -250,25 +250,25 @@ def test_testar_alerta_no_chat_do_dev_roda_checagem():
     update = make_update(chat_id=DEV_CHAT)
     asyncio.run(cmd_testar_alerta(update, context, repository=RepositorioFake(), settings=make_settings()))
 
-    assert textos_enviados(context) == ["⚙️ forçando a checagem de entregas de amanhã agr..."]
+    assert textos_enviados(context) == ["⚙️ forçando a checagem de entregas de hoje agr..."]
 
 
 # ---------- jobs ----------
 
 
 def test_checar_entregas_avisa_cada_chat_mesmo_se_um_falhar():
-    amanha = datetime.now(TZ).date() + timedelta(days=1)
+    hoje = datetime.now(TZ).date()
     repo = RepositorioFake()
-    repo.create(1, "bloqueado", amanha)
-    repo.create(2, "fone", amanha)
-    repo.create(3, "depois", amanha + timedelta(days=1))
+    repo.create(1, "bloqueado", hoje)
+    repo.create(2, "fone", hoje)
+    repo.create(3, "depois", hoje + timedelta(days=1))
     context = make_context()
     context.bot.send_message.side_effect = [Exception("bot bloqueado"), None]
     asyncio.run(checar_entregas(context, repository=repo, settings=make_settings()))
 
     chats = [c.kwargs["chat_id"] for c in context.bot.send_message.await_args_list]
     assert chats == [1, 2]
-    assert "'fone' tá previsto pra chegar AMANHÃ" in textos_enviados(context)[1]
+    assert "'fone' tá previsto pra chegar HOJE" in textos_enviados(context)[1]
 
 
 def test_limpar_encomendas_antigas_remove_antes_de_hoje():

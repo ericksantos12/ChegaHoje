@@ -15,7 +15,7 @@ MSG_ERRO_SALVAR = (
     "tente de novo mais tarde por favor"
 )
 MSG_ERRO_REMOVER = "deu ruim ao remover a encomenda. tenta de novo mais tarde por favor"
-MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de amanhã agr..."
+MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de hoje agr..."
 
 # fluxo guiado do /adicionar
 MSG_PERGUNTA_ITEM = "qual o pacote? 📦"
@@ -57,7 +57,7 @@ def mensagem_start(horario_alerta: time) -> str:
 🗑️ /remover [número]
     tira uma encomenda da lista (ou usa os botões do /listar).
 
-⏰ todo dia às {horario_alerta:%H:%M} eu vou avisar se tiver pacote chegando no dia seguinte!
+⏰ todo dia às {horario_alerta:%H:%M} eu vou avisar se tiver pacote chegando no dia!
 
 Duvidas ou feedbacks só direcionar ao meu chefe @ericksantos12
 """
@@ -95,7 +95,7 @@ def mensagem_removido(item: str) -> str:
 
 def mensagem_alerta(item: str, data: date) -> str:
     return (
-        f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{item}' tá previsto pra chegar AMANHÃ ({formatar_data(data)})!"
+        f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{item}' tá previsto pra chegar HOJE ({formatar_data(data)})!"
         "\n\nFiquem espertos pra receber o carteiro."
     )
 

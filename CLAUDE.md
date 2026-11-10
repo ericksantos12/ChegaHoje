@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-ChegaHoje is a Telegram bot (python-telegram-bot v22, async) that tracks expected package deliveries per chat and sends a daily reminder (default 08:00 America/Sao_Paulo) for packages due the next day. Data lives in PostgreSQL via SQLAlchemy 2.0, with Alembic migrations. Code identifiers, comments, and all user-facing bot messages are in Portuguese (bot replies use a casual, lowercase, slangy tone — keep it consistent).
+ChegaHoje is a Telegram bot (python-telegram-bot v22, async) that tracks expected package deliveries per chat and sends a daily reminder (default 08:00 America/Sao_Paulo) for packages due that same day. Data lives in PostgreSQL via SQLAlchemy 2.0, with Alembic migrations. Code identifiers, comments, and all user-facing bot messages are in Portuguese (bot replies use a casual, lowercase, slangy tone — keep it consistent).
 
 ## Commands
 
@@ -31,6 +31,15 @@ alembic check
 ```
 
 CI (`.github/workflows/ci.yml`) runs `ruff check .` and `pytest` against a `postgres:16-alpine` service. The container's `entrypoint.sh` runs `alembic upgrade head` before `python main.py`, so migrations apply automatically on deploy. The repository tests create/drop the schema with `Base.metadata.create_all`, so point `TEST_DATABASE_URL` at a throwaway database.
+
+## Commits
+
+Every commit message follows [Gitmoji](https://gitmoji.dev) (use the `gitmoji` skill to pick the emoji). Match the existing history:
+
+- `:shortcode:` form, not the unicode emoji: `:sparkles: Add guided flow to /adicionar`
+- Exactly one gitmoji, then an imperative English subject starting with a capital letter, no trailing period, ≤ 72 chars
+- Optional body after a blank line explaining *why*
+- Common ones here: `:sparkles:` feature, `:bug:` fix, `:recycle:` refactor, `:memo:` docs, `:white_check_mark:` tests, `:card_file_box:` DB/migrations, `:wrench:` config, `:whale:` Docker, `:construction_worker:` CI, `:heavy_plus_sign:`/`:arrow_up:` deps, `:lock:` security, `:loud_sound:` logging, `:twisted_rightwards_arrows:` merges
 
 ## Configuration
 

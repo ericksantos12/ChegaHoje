@@ -32,13 +32,13 @@
 ## 🧐 About <a name = "about"></a>
 **ChegaHoje** is a Telegram bot designed to help users keep track of their incoming packages. It allows users to register expected delivery dates and receive notifications.
 
-The main goal is to prevent surprises by reminding the user at 08:00 AM if a package is scheduled to arrive the next day.
+The main goal is to prevent surprises by reminding the user at 08:00 AM if a package is scheduled to arrive that same day.
 
 ## ✨ Features <a name = "features"></a>
 - **Add Package**: Register a new package with a description and expected arrival date.
 - **List Packages**: View a list of all currently tracked packages.
 - **Remove Package**: Delete a package from the tracking list.
-- **Daily Reminders**: Automatically checks for packages arriving the next day and sends a notification at 08:00 AM.
+- **Daily Reminders**: Automatically checks for packages arriving that day and sends a notification at 08:00 AM.
 
 ## 🛠️ Tech Stack <a name = "tech_stack"></a>
 - **Language**: [Python 3.12+](https://www.python.org/)

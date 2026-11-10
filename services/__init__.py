@@ -6,7 +6,6 @@ from services.datas import (
     separar_item_e_data,
 )
 from services.encomendas import (
-    data_amanha,
     data_hoje,
     formatar_data,
     selecionar_por_indice,
@@ -51,7 +50,6 @@ __all__ = [
     "MSG_PERGUNTA_ITEM",
     "MSG_TESTAR_ALERTA",
     "MSG_TIMEOUT",
-    "data_amanha",
     "data_hoje",
     "formatar_data",
     "interpretar_data",
