@@ -1,0 +1,17 @@
+# Apenas configuração de ferramentas (o projeto não é empacotado).
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Contrato fixo do repositório usa Optional[...] de propósito
+"repositories/interfaces/IEncomendaRepository.py" = ["UP045"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
