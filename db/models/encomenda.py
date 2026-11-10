@@ -1,15 +1,21 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Text, Date, Index
+from datetime import date
 
-Base = declarative_base()
+from sqlalchemy import BigInteger, Date, Index, Integer, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from db.models.base import Base
+
 
 class Encomenda(Base):
-    __tablename__ = 'encomendas'
+    __tablename__ = "encomendas"
+    __table_args__ = (Index("ix_encomendas_chat_id_data", "chat_id", "data"),)
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    chat_id = Column(Integer, index=True, nullable=False)
-    item = Column(Text, nullable=False)
-    data = Column(Date, index=True, nullable=False)
-    dono = Column(Text, default="Sem dono")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # BigInteger: ids de supergrupos do Telegram (-100xxxxxxxxxx) não cabem em int4
+    chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    item: Mapped[str] = mapped_column(Text, nullable=False)
+    data: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    dono: Mapped[str | None] = mapped_column(Text, default="Sem dono")
 
-Index('ix_encomendas_chat_id_data', Encomenda.chat_id, Encomenda.data)
+    def __repr__(self) -> str:
+        return f"Encomenda(id={self.id!r}, chat_id={self.chat_id!r}, item={self.item!r}, data={self.data!r})"

@@ -1,12 +1,12 @@
 import os
 from logging.config import fileConfig
-from dotenv import load_dotenv
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
 
 from alembic import context
-from db.models.encomenda import Base
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
+
+# Importar o pacote db.models registra todos os modelos no metadata do Base
+from db.models import Base
 
 load_dotenv()
 
@@ -24,6 +24,14 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+
+
+def get_database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise RuntimeError("DATABASE_URL não definida: necessária para rodar as migrations.")
+    return url
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -43,7 +51,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = os.getenv("DATABASE_URL")
+    url = get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -62,7 +70,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+    config.set_main_option("sqlalchemy.url", get_database_url())
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -70,9 +78,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

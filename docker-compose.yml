@@ -8,6 +8,9 @@ services:
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
       DATABASE_URL: ${DATABASE_URL}
       DEVELOPER_CHAT_ID: ${DEVELOPER_CHAT_ID}
+      TIME_ZONE: ${TIME_ZONE:-America/Sao_Paulo}
+      ALERT_TIME: ${ALERT_TIME:-08:00}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
         condition: service_healthy
