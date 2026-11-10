@@ -4,49 +4,15 @@ from collections.abc import Sequence
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TypeVar
 
-FORMATO_DATA = "%d/%m/%Y"
+from services.erros import EntradaInvalida
 
-MSG_FORMATO_ERRADO = "opa, formato errado! usa assim: /adicionar nome do pacote - dd/mm/aaaa"
-MSG_DATA_ZOADA = "opa, data zoada! usa o formato certinho: dd/mm/aaaa (ex: 15/03/2027)"
-MSG_DATA_PASSADA = "eita, essa data já passou! só aceito data de hoje pra frente."
+FORMATO_DATA = "%d/%m/%Y"
 
 MSG_LISTA_VAZIA_REMOVER = "a lista já tá vazia, não tem nada pra remover!"
 MSG_FALTOU_NUMERO = "opa, faltou dizer o número da encomenda! usa: /remover [número] (olha o /listar pra saber)"
 MSG_NAO_EH_NUMERO = "tem que ser número, po! ex: /remover 1"
 
 T = TypeVar("T")
-
-
-class EntradaInvalida(ValueError):
-    """Entrada do usuário inválida. `mensagem` é o texto pra responder no chat."""
-
-    def __init__(self, mensagem: str):
-        super().__init__(mensagem)
-        self.mensagem = mensagem
-
-
-def parse_adicionar(texto: str, hoje: date) -> tuple[str, date]:
-    """Converte 'item - dd/mm/aaaa' em (item, data).
-
-    Usa o último '-' como separador, então o item pode ter hífen ('Wi-Fi mesh - 10/12/2026').
-    Datas no passado são recusadas; hoje é aceito.
-    """
-    if not texto or "-" not in texto:
-        raise EntradaInvalida(MSG_FORMATO_ERRADO)
-
-    item, data_str = (parte.strip() for parte in texto.rsplit("-", 1))
-    if not item:
-        raise EntradaInvalida(MSG_FORMATO_ERRADO)
-
-    try:
-        data = datetime.strptime(data_str, FORMATO_DATA).date()
-    except ValueError:
-        raise EntradaInvalida(MSG_DATA_ZOADA) from None
-
-    if data < hoje:
-        raise EntradaInvalida(MSG_DATA_PASSADA)
-
-    return item, data
 
 
 def selecionar_por_indice(encomendas: Sequence[T], indice: str | None) -> T:

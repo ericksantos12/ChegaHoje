@@ -17,6 +17,17 @@ MSG_ERRO_SALVAR = (
 MSG_ERRO_REMOVER = "deu ruim ao remover a encomenda. tenta de novo mais tarde por favor"
 MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de amanhã agr..."
 
+# fluxo guiado do /adicionar
+MSG_PERGUNTA_ITEM = "qual o pacote? 📦"
+MSG_ITEM_VAZIO = "o nome do pacote não pode ser vazio, manda de novo 📦"
+MSG_DIGITA_DATA = "manda a data aí 📅 (ex: 15/03, amanhã, sexta, em 5 dias)"
+MSG_CANCELADO = "beleza, cancelei ❌"
+MSG_TIMEOUT = "⏰ demorou demais, cancelei o /adicionar. manda de novo quando quiser"
+MSG_BOTAO_NAO_EH_TEU = "esse botão não é pra você (ou já expirou) 👀"
+
+# botões de desfazer / remover
+MSG_JA_SAIU = "esse já não tá mais na lista"
+
 
 class _ItemComData(Protocol):
     item: str
@@ -32,15 +43,19 @@ def mensagem_start(horario_alerta: time) -> str:
 
 ===== COMO USAR O BOT =====
 
-➕ /adicionar [item] - [dd/mm/aaaa]
-    ex: /adicionar liquidificador - 27/02/2027
+➕ /adicionar [item] [quando]
+    ex: /adicionar liquidificador 27/02
+        /adicionar fone bluetooth amanhã
+        /adicionar Wi-Fi mesh sexta
+        /adicionar teclado em 5 dias
+    ou manda só /adicionar que eu vou perguntando.
     (só aceito data de hoje pra frente)
 
 📋 /listar
     mostra a lista com todas as encomendas salvas.
 
 🗑️ /remover [número]
-    tira uma encomenda da lista (olha o número no /listar).
+    tira uma encomenda da lista (ou usa os botões do /listar).
 
 ⏰ todo dia às {horario_alerta:%H:%M} eu vou avisar se tiver pacote chegando no dia seguinte!
 
@@ -60,6 +75,18 @@ def mensagem_lista(encomendas: Iterable[_ItemComData]) -> str:
 
 def mensagem_item_adicionado(item: str, data: date) -> str:
     return f"===== ITEM ADICIONADO =====\n\nPACOTE:\n📦 {item}\n\nPREVISÃO DE ENTREGA:\n📅 {formatar_data(data)}"
+
+
+def mensagem_pergunta_data(item: str) -> str:
+    return f"📦 {item}\n\ne chega quando? escolhe aí ou responde com a data (ex: 15/03, sexta, em 5 dias)"
+
+
+def mensagem_desfeito(item: str) -> str:
+    return f"↩️ desfeito! o pacote 📦 '{item}' saiu da lista."
+
+
+def mensagem_confirmar_remocao(item: str, data: date) -> str:
+    return f"tirar 📦 '{item}' ({formatar_data(data)}) da lista mesmo?"
 
 
 def mensagem_removido(item: str) -> str:

@@ -9,15 +9,35 @@ from telegram.constants import ParseMode
 
 from config import Settings
 from handlers import (
-    adicionar,
     checar_entregas,
     error_handler,
     limpar_encomendas_antigas,
-    listar,
     remover,
 )
 from handlers import (
     testar_alerta as cmd_testar_alerta,  # alias: pytest coletaria 'testar_*' como teste
+)
+from handlers.adicionar import (
+    CB_DESFAZER,
+    ESPERANDO_DATA,
+    ESPERANDO_ITEM,
+    FIM,
+    adicionar,
+    botao_atalho,
+    botao_digitar,
+    cancelar,
+    desfazer,
+    receber_data,
+    receber_item,
+)
+from handlers.lista import (
+    CB_REMOVER,
+    CB_REMOVER_NAO,
+    CB_REMOVER_SIM,
+    botao_remover,
+    botao_remover_nao,
+    botao_remover_sim,
+    listar,
 )
 from services import MSG_ERRO_REMOVER, MSG_ERRO_SALVAR
 
@@ -85,20 +105,35 @@ def make_settings(developer_chat_id: int | None = DEV_CHAT) -> Settings:
     )
 
 
-def make_update(chat_id: int = CHAT, first_name: str = "Ana"):
+def make_update(chat_id: int = CHAT, first_name: str = "Ana", texto: str | None = None, callback_data=None):
+    callback_query = None
+    if callback_data is not None:
+        callback_query = SimpleNamespace(
+            data=callback_data,
+            answer=AsyncMock(),
+            edit_message_text=AsyncMock(),
+            edit_message_reply_markup=AsyncMock(),
+        )
     return SimpleNamespace(
         effective_chat=SimpleNamespace(id=chat_id),
-        effective_user=SimpleNamespace(first_name=first_name),
+        effective_user=SimpleNamespace(
+            first_name=first_name, mention_html=lambda: f'<a href="tg://user?id=1">{first_name}</a>'
+        ),
+        effective_message=SimpleNamespace(message_id=42, text=texto),
+        callback_query=callback_query,
     )
 
 
-def make_context(args=None, error=None):
+def make_context(args=None, error=None, user_data=None):
     return SimpleNamespace(
-        bot=SimpleNamespace(send_message=AsyncMock()),
+        bot=SimpleNamespace(
+            send_message=AsyncMock(return_value=SimpleNamespace(message_id=100)),
+            edit_message_reply_markup=AsyncMock(),
+        ),
         args=args or [],
         error=error,
         chat_data={},
-        user_data={},
+        user_data={} if user_data is None else user_data,
     )
 
 
@@ -112,8 +147,9 @@ def textos_enviados(context) -> list[str]:
 def test_adicionar_sucesso():
     repo = RepositorioFake()
     context = make_context(args="Wi-Fi mesh - 10/12/2099".split())
-    asyncio.run(adicionar(make_update(), context, repository=repo, settings=make_settings()))
+    estado = asyncio.run(adicionar(make_update(), context, repository=repo, settings=make_settings()))
 
+    assert estado == FIM
     assert len(repo.encomendas) == 1
     criada = repo.encomendas[0]
     assert (criada.chat_id, criada.item, criada.data, criada.dono) == (CHAT, "Wi-Fi mesh", date(2099, 12, 10), "Ana")
@@ -280,3 +316,187 @@ def test_error_handler_trunca_mantendo_fim_do_traceback():
     texto = context.bot.send_message.await_args.kwargs["text"]
     assert len(texto) <= 4096
     assert "FIM_DO_ERRO" in texto
+
+
+# ---------- /adicionar: fluxo guiado ----------
+
+
+def _botoes(chamada) -> list[str]:
+    teclado = chamada.kwargs.get("reply_markup")
+    return [b.callback_data for linha in getattr(teclado, "inline_keyboard", []) for b in linha]
+
+
+def _rodar(callback, update, context, repo, **extra):
+    return asyncio.run(callback(update, context, repository=repo, settings=make_settings(), **extra))
+
+
+def test_adicionar_sem_nada_pergunta_item_e_depois_data_e_salva_pelo_atalho():
+    repo = RepositorioFake()
+    user_data = {}
+
+    context = make_context(user_data=user_data)
+    assert _rodar(adicionar, make_update(), context, repo) == ESPERANDO_ITEM
+    pergunta = context.bot.send_message.await_args
+    assert pergunta.kwargs["text"] == "qual o pacote? 📦"
+    assert pergunta.kwargs["reply_markup"].force_reply
+    assert pergunta.kwargs["reply_markup"].selective
+    assert pergunta.kwargs["reply_parameters"].message_id == 42  # responde a mensagem da pessoa
+
+    context = make_context(user_data=user_data)
+    assert _rodar(receber_item, make_update(texto="fone bluetooth"), context, repo) == ESPERANDO_DATA
+    assert "fone bluetooth" in textos_enviados(context)[0]
+    assert "add:dias:1" in _botoes(context.bot.send_message.await_args)
+
+    context = make_context(user_data=user_data)
+    update = make_update(callback_data="add:dias:1")
+    assert _rodar(botao_atalho, update, context, repo) == FIM
+    update.callback_query.answer.assert_awaited_once()
+    criada = repo.encomendas[0]
+    assert (criada.item, criada.chat_id) == ("fone bluetooth", CHAT)
+    assert criada.data == datetime.now(TZ).date() + timedelta(days=1)
+    # tirou os botões da pergunta da data e mandou confirmação com desfazer
+    context.bot.edit_message_reply_markup.assert_awaited_once()
+    assert context.bot.edit_message_reply_markup.await_args.kwargs["message_id"] == 100
+    assert _botoes(context.bot.send_message.await_args) == [f"{CB_DESFAZER}{criada.id}"]
+    assert user_data == {}
+
+
+def test_adicionar_so_item_pergunta_data_e_aceita_data_digitada():
+    repo = RepositorioFake()
+    user_data = {}
+    context = make_context(args=["teclado"], user_data=user_data)
+    assert _rodar(adicionar, make_update(), context, repo) == ESPERANDO_DATA
+
+    context = make_context(user_data=user_data)
+    assert _rodar(receber_data, make_update(texto="não sei"), context, repo) == ESPERANDO_DATA
+    assert "não entendi a data" in textos_enviados(context)[0]
+    assert repo.encomendas == []
+
+    context = make_context(user_data=user_data)
+    assert _rodar(receber_data, make_update(texto="15/03/2099"), context, repo) == FIM
+    assert (repo.encomendas[0].item, repo.encomendas[0].data) == ("teclado", date(2099, 3, 15))
+
+
+def test_adicionar_so_data_pergunta_item_e_salva():
+    repo = RepositorioFake()
+    user_data = {}
+    context = make_context(args=["10/12/2099"], user_data=user_data)
+    assert _rodar(adicionar, make_update(), context, repo) == ESPERANDO_ITEM
+
+    context = make_context(user_data=user_data)
+    assert _rodar(receber_item, make_update(texto="caixa"), context, repo) == FIM
+    assert (repo.encomendas[0].item, repo.encomendas[0].data) == ("caixa", date(2099, 12, 10))
+
+
+def test_resposta_do_item_pode_trazer_a_data_junto():
+    repo = RepositorioFake()
+    user_data = {}
+    _rodar(adicionar, make_update(), make_context(user_data=user_data), repo)
+    estado = _rodar(receber_item, make_update(texto="mesa 10/12/2099"), make_context(user_data=user_data), repo)
+    assert estado == FIM
+    assert (repo.encomendas[0].item, repo.encomendas[0].data) == ("mesa", date(2099, 12, 10))
+
+
+def test_botao_digitar_menciona_a_pessoa_com_force_reply():
+    user_data = {}
+    _rodar(adicionar, make_update(), make_context(args=["fone"], user_data=user_data), RepositorioFake())
+    context = make_context(user_data=user_data)
+    update = make_update(callback_data="add:digitar")
+    assert asyncio.run(botao_digitar(update, context)) == ESPERANDO_DATA
+    chamada = context.bot.send_message.await_args
+    assert chamada.kwargs["text"].startswith('<a href="tg://user?id=1">Ana</a>')
+    assert chamada.kwargs["parse_mode"] == ParseMode.HTML
+    assert chamada.kwargs["reply_markup"].selective
+
+
+def test_cancelar_limpa_rascunho_e_tira_botoes():
+    user_data = {}
+    _rodar(adicionar, make_update(), make_context(args=["fone"], user_data=user_data), RepositorioFake())
+    assert user_data
+    context = make_context(user_data=user_data)
+    assert asyncio.run(cancelar(make_update(), context)) == FIM
+    assert user_data == {}
+    context.bot.edit_message_reply_markup.assert_awaited_once()
+    assert textos_enviados(context) == ["beleza, cancelei ❌"]
+
+
+def test_rascunho_separado_por_chat():
+    user_data = {}
+    _rodar(adicionar, make_update(chat_id=1), make_context(args=["fone"], user_data=user_data), RepositorioFake())
+    _rodar(adicionar, make_update(chat_id=2), make_context(args=["mesa"], user_data=user_data), RepositorioFake())
+    assert user_data["adicionar:1"]["item"] == "fone"
+    assert user_data["adicionar:2"]["item"] == "mesa"
+
+
+# ---------- desfazer ----------
+
+
+def test_desfazer_remove_e_edita_mensagem():
+    repo = RepositorioFake()
+    encomenda = repo.create(CHAT, "fone", date(2099, 1, 1))
+    update = make_update(callback_data=f"{CB_DESFAZER}{encomenda.id}")
+    asyncio.run(desfazer(update, make_context(), repository=repo))
+    assert repo.encomendas == []
+    assert "desfeito" in update.callback_query.edit_message_text.await_args.args[0]
+
+
+def test_desfazer_nao_remove_de_outro_chat():
+    repo = RepositorioFake()
+    encomenda = repo.create(222, "fone", date(2099, 1, 1))
+    update = make_update(callback_data=f"{CB_DESFAZER}{encomenda.id}")
+    asyncio.run(desfazer(update, make_context(), repository=repo))
+    assert len(repo.encomendas) == 1
+    assert repo.removidos == []
+    update.callback_query.answer.assert_awaited_once_with("esse já não tá mais na lista")
+
+
+# ---------- /listar: botões ----------
+
+
+def test_listar_tem_um_botao_por_encomenda():
+    repo = RepositorioFake()
+    a = repo.create(CHAT, "fone", date(2099, 1, 2))
+    b = repo.create(CHAT, "um item com um nome muito comprido demais", date(2099, 1, 1))
+    context = make_context()
+    asyncio.run(listar(make_update(), context, repository=repo))
+    assert _botoes(context.bot.send_message.await_args) == [f"{CB_REMOVER}{b.id}", f"{CB_REMOVER}{a.id}"]
+    rotulo = context.bot.send_message.await_args.kwargs["reply_markup"].inline_keyboard[0][0].text
+    assert rotulo.startswith("🗑️ 1. ") and rotulo.endswith("…")
+
+
+def test_listar_vazia_sem_botoes():
+    context = make_context()
+    asyncio.run(listar(make_update(), context, repository=RepositorioFake()))
+    assert context.bot.send_message.await_args.kwargs["reply_markup"] is None
+
+
+def test_botao_remover_pede_confirmacao_sem_apagar():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 2))
+    update = make_update(callback_data=f"{CB_REMOVER}{e.id}")
+    asyncio.run(botao_remover(update, make_context(), repository=repo))
+    assert len(repo.encomendas) == 1
+    chamada = update.callback_query.edit_message_text.await_args
+    assert "tirar 📦 'fone' (02/01/2099)" in chamada.args[0]
+    assert _botoes(chamada) == [f"{CB_REMOVER_SIM}{e.id}", CB_REMOVER_NAO]
+
+
+def test_botao_remover_sim_apaga_e_atualiza_lista():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 2))
+    fica = repo.create(CHAT, "mesa", date(2099, 1, 3))
+    update = make_update(callback_data=f"{CB_REMOVER_SIM}{e.id}")
+    asyncio.run(botao_remover_sim(update, make_context(), repository=repo))
+    assert repo.removidos == [(CHAT, e.id)]
+    chamada = update.callback_query.edit_message_text.await_args
+    assert "1. 📦 mesa" in chamada.args[0]
+    assert _botoes(chamada) == [f"{CB_REMOVER}{fica.id}"]
+
+
+def test_botao_remover_nao_volta_pra_lista():
+    repo = RepositorioFake()
+    repo.create(CHAT, "fone", date(2099, 1, 2))
+    update = make_update(callback_data=CB_REMOVER_NAO)
+    asyncio.run(botao_remover_nao(update, make_context(), repository=repo))
+    assert len(repo.encomendas) == 1
+    assert "1. 📦 fone" in update.callback_query.edit_message_text.await_args.args[0]

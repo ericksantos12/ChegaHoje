@@ -41,19 +41,30 @@ All runtime config goes through `config.get_settings()` (cached `Settings` datac
 `main.py` → `handlers/` → `services/` (pure) + `repositories/` → `db/`.
 
 - **`main.py`** loads settings, builds `SAEncomenda(create_session_factory(settings.database_url))`, and registers handlers/jobs with dependencies injected via `functools.partial(handler, repository=..., settings=...)` (keyword-only params). Jobs: `checar_entregas` at `settings.alert_time`, `limpar_encomendas_antigas` (deletes packages dated before today) at 03:00 in `settings.time_zone`.
-- **`services/`** — business logic with no Telegram or DB imports: `/adicionar` parsing and validation, list-index selection, date helpers (take `now`/`tz` as args), and all bot message texts (`services/mensagens.py`). Invalid user input raises `EntradaInvalida`, whose `.mensagem` is the reply text. Put new logic here so it's unit-testable.
-- **`handlers/`** — thin async adapters: `comandos.py` (commands), `jobs.py` (scheduled jobs), `erros.py` (global error handler; HTML-escapes and truncates to Telegram's 4096-char limit). Handlers import the repository only as a type (`EncomendaRepository` under `TYPE_CHECKING`), so their tests don't need a database. New command: logic in `services/`, handler in `handlers/comandos.py`, export in `handlers/__init__.py`, register in `main.py`.
+- **`services/`** — business logic with no Telegram or DB imports: natural-language date parsing (`datas.py`: `separar_item_e_data`, `interpretar_data`), list-index selection and date helpers (`encomendas.py`, take `now`/`tz` as args), and all bot message texts (`mensagens.py`). Invalid user input raises `EntradaInvalida` (`erros.py`), whose `.mensagem` is the reply text. Put new logic here so it's unit-testable.
+- **`handlers/`** — thin async adapters:
+  - `adicionar.py` — `/adicionar` as a `ConversationHandler` (states `ESPERANDO_ITEM`/`ESPERANDO_DATA`, `/cancelar`, 5-min timeout, `allow_reentry`), quick-pick date buttons and the "↩️ desfazer" button. `criar_handlers_adicionar()` returns the handlers in registration order: the conversation first, then a catch-all for stale/foreign `add:` buttons, then `desfazer:`.
+  - `lista.py` — `/listar` with a 🗑️ button per item and a confirm step (`rm:`/`rmsim:`/`rmnao`); `criar_handlers_lista()`.
+  - `comandos.py` (`/start`, `/remover`, `/testar_alerta`), `jobs.py` (scheduled jobs), `erros.py` (global error handler; HTML-escapes and truncates to Telegram's 4096-char limit).
+  - Handlers import the repository only as a type (`EncomendaRepository` under `TYPE_CHECKING`), so their tests don't need a database. New command: logic in `services/`, handler in `handlers/`, export in `handlers/__init__.py`, register in `main.py`.
+  - Callback data is `<prefix>:<value>` (64-byte Telegram limit); button handlers always re-check ownership via `repository.remove(chat_id, id)`/`get_by_chat_id`, never trust the id alone.
 - **`repositories/`** — `interfaces/IEncomendaRepository.py` is a `typing.Protocol` (the contract); `SAEncomenda` implements it. Each method opens its own session from the injected factory, catches `SQLAlchemyError`, logs, and returns a failure value (`None`, `False`, `[]`, `0`) instead of raising — handlers check these. Returned ORM objects are detached (factory uses `expire_on_commit=False`). `remove(chat_id, id)` only deletes rows belonging to that chat.
 - **`db/`** — no work at import time; `create_session_factory(url)` builds engine + sessionmaker. Models use 2.0-style `Mapped`/`mapped_column` on `Base` from `db/models/base.py`, which `migrations/env.py` uses as `target_metadata` — new models must inherit it. `chat_id` is `BigInteger` (supergroup ids like `-100…` overflow int4).
 - **`utils/logger.py`** — `get_logger(__name__)`; name the module variable `log` and use `%s` formatting. `main.py` silences `httpx` INFO logs because they include the bot token in URLs.
 
 ### Tests
 
-`tests/test_services.py` (pure functions), `tests/test_handlers.py` (handlers with an in-memory fake repository and `AsyncMock` bot, coroutines run via `asyncio.run` — no pytest-asyncio), `tests/test_repository.py` (real Postgres). There is no `conftest.py`; fixtures live in each test file.
+- `tests/test_services.py`, `tests/test_datas.py` — pure functions.
+- `tests/test_handlers.py` — handler functions called directly, with an in-memory fake repository and `AsyncMock` bot.
+- `tests/test_fluxo_telegram.py` — end-to-end: a real PTB `Application` with the production handlers and a `BotFalso` (a `Bot` subclass that records calls, no network), feeding real `Update` objects through `process_update`. Use this to test conversation states, callback patterns and handler order.
+- `tests/test_repository.py` — real Postgres.
+
+Coroutines run via `asyncio.run` (no pytest-asyncio). There is no `conftest.py`; fixtures live in each test file.
 
 ### Behavior worth knowing
 
-- `/adicionar item - dd/mm/aaaa` splits on the **last** `-` (items may contain hyphens) and rejects dates before today.
+- `/adicionar` takes the date at the **end** of the text: `dd/mm[/aa[aa]]`, `hoje`, `amanhã`, `depois de amanhã`, weekdays (always the next one *after* today), `em N dias/semanas`. Accent/case-insensitive; the old `item - dd/mm/aaaa` form still works. A year-less date up to 60 days in the past is rejected as past (likely a typo); older ones roll to next year. Missing item/date starts the guided conversation.
+- Groups: with privacy mode on the bot only receives commands and replies to its own messages, so conversation prompts use `ForceReply(selective=True)` (replying to the user's message, or mentioning them when triggered from a button). The conversation is keyed per (chat, user); drafts live in `user_data["adicionar:<chat_id>"]`.
 - `/remover N` uses the 1-based position from `/listar`, not the DB id; both rely on `get_by_chat_id` ordering by `(data, id)`.
 - Packages are scoped per `chat_id` (a group shares one list); `dono` stores the adding user's first name.
 - `/testar_alerta` (undocumented) runs the daily check immediately and alerts *all* chats, which is why it's restricted to `DEVELOPER_CHAT_ID`.

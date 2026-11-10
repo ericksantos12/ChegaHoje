@@ -8,11 +8,11 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from config import ConfigError, get_settings
 from db import create_session_factory
 from handlers import (
-    adicionar,
     checar_entregas,
+    criar_handlers_adicionar,
+    criar_handlers_lista,
     error_handler,
     limpar_encomendas_antigas,
-    listar,
     remover,
     start,
     testar_alerta,
@@ -44,8 +44,9 @@ def main() -> None:
 
     # handlers dos comandos
     app.add_handler(CommandHandler("start", functools.partial(start, settings=settings)))
-    app.add_handler(CommandHandler("adicionar", functools.partial(adicionar, **deps)))
-    app.add_handler(CommandHandler("listar", functools.partial(listar, repository=repository)))
+    # /adicionar (conversa guiada + botões de data e desfazer) e /listar (botões de remover)
+    app.add_handlers(criar_handlers_adicionar(**deps))
+    app.add_handlers(criar_handlers_lista(repository=repository))
     app.add_handler(CommandHandler("remover", functools.partial(remover, repository=repository)))
     # só responde no chat do dev (DEVELOPER_CHAT_ID)
     app.add_handler(CommandHandler("testar_alerta", functools.partial(testar_alerta, **deps)))

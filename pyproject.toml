@@ -15,3 +15,7 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+filterwarnings = [
+    # aviso do PTB sobre CallbackQueryHandler com per_message=False; é o comportamento desejado (ver handlers/adicionar.py)
+    "ignore:If .per_message=False.:telegram.warnings.PTBUserWarning",
+]

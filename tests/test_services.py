@@ -11,62 +11,16 @@ from services import (
     mensagem_erro,
     mensagem_lista,
     mensagem_start,
-    parse_adicionar,
     selecionar_por_indice,
 )
 from services.encomendas import (
-    MSG_DATA_PASSADA,
-    MSG_DATA_ZOADA,
     MSG_FALTOU_NUMERO,
-    MSG_FORMATO_ERRADO,
     MSG_LISTA_VAZIA_REMOVER,
     MSG_NAO_EH_NUMERO,
 )
 
 HOJE = date(2026, 11, 10)
 SP = ZoneInfo("America/Sao_Paulo")
-
-
-# ---------- parse_adicionar ----------
-
-
-def test_parse_simples():
-    assert parse_adicionar("liquidificador - 27/12/2026", HOJE) == ("liquidificador", date(2026, 12, 27))
-
-
-def test_parse_item_com_hifen():
-    assert parse_adicionar("Wi-Fi mesh - 10/12/2026", HOJE) == ("Wi-Fi mesh", date(2026, 12, 10))
-
-
-def test_parse_sem_espacos_em_volta_do_hifen():
-    assert parse_adicionar("fone-10/12/2026", HOJE) == ("fone", date(2026, 12, 10))
-
-
-def test_parse_aceita_hoje():
-    assert parse_adicionar("pacote - 10/11/2026", HOJE) == ("pacote", HOJE)
-
-
-def test_parse_recusa_ontem():
-    with pytest.raises(EntradaInvalida) as e:
-        parse_adicionar("pacote - 09/11/2026", HOJE)
-    assert e.value.mensagem == MSG_DATA_PASSADA
-
-
-@pytest.mark.parametrize("texto", ["", "pacote 10/12/2026", " - 10/12/2026", "-10/12/2026"])
-def test_parse_formato_errado(texto):
-    with pytest.raises(EntradaInvalida) as e:
-        parse_adicionar(texto, HOJE)
-    assert e.value.mensagem == MSG_FORMATO_ERRADO
-
-
-@pytest.mark.parametrize(
-    "texto",
-    ["pacote - 31/02/2026", "pacote - amanhã", "pacote - 2026/12/10", "pacote - 10-12-2026", "pacote - "],
-)
-def test_parse_data_invalida(texto):
-    with pytest.raises(EntradaInvalida) as e:
-        parse_adicionar(texto, HOJE)
-    assert e.value.mensagem == MSG_DATA_ZOADA
 
 
 # ---------- selecionar_por_indice ----------

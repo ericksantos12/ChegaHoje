@@ -98,9 +98,15 @@ TIME_ZONE=America/Sao_Paulo
 Once the bot is running, you can interact with it on Telegram using the following commands:
 
 - `/start`: Initializes the bot and shows the help message.
-- `/adicionar [item] - [dd/mm/aaaa]`: Adds a new package to track.
-  - Example: `/adicionar Liquidificador - 27/02/2027`
-- `/listar`: Lists all saved packages with their IDs.
+- `/adicionar [item] [when]`: Adds a new package to track. The date goes at the end and can be written naturally:
+  - `/adicionar Liquidificador 27/02` (year optional: the next occurrence is used)
+  - `/adicionar fone bluetooth amanhã` / `hoje` / `depois de amanhã`
+  - `/adicionar Wi-Fi mesh sexta` (next occurrence of that weekday)
+  - `/adicionar teclado em 5 dias` / `em 1 semana`
+  - The old format `/adicionar Liquidificador - 27/02/2027` still works.
+  - Send just `/adicionar` (or leave out the item or the date) and the bot asks for what is missing, with quick-pick date buttons. `/cancelar` aborts; the conversation also expires after 5 minutes.
+  - The confirmation has an **↩️ desfazer** button to undo it.
+- `/listar`: Lists all saved packages, with a 🗑️ button per package to remove it (asks for confirmation).
 - `/remover [number]`: Removes a package using its list number (obtained from `/listar`).
   - Example: `/remover 2`
 
