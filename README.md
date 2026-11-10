@@ -99,7 +99,7 @@ Once the bot is running, you can interact with it on Telegram using the followin
 
 - `/start`: Initializes the bot and shows the help message.
 - `/adicionar [item] - [dd/mm/aaaa]`: Adds a new package to track.
-  - Example: `/adicionar Liquidificador - 27/02/2026`
+  - Example: `/adicionar Liquidificador - 27/02/2027`
 - `/listar`: Lists all saved packages with their IDs.
 - `/remover [number]`: Removes a package using its list number (obtained from `/listar`).
   - Example: `/remover 2`

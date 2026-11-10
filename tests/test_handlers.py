@@ -58,9 +58,7 @@ class RepositorioFake:
         if self.falhar:
             return False
         antes = len(self.encomendas)
-        self.encomendas = [
-            e for e in self.encomendas if not (e.id == encomenda_id and e.chat_id == chat_id)
-        ]
+        self.encomendas = [e for e in self.encomendas if not (e.id == encomenda_id and e.chat_id == chat_id)]
         return len(self.encomendas) < antes
 
     def get_by_chat_id(self, chat_id):
@@ -110,6 +108,7 @@ def textos_enviados(context) -> list[str]:
 
 # ---------- /adicionar ----------
 
+
 def test_adicionar_sucesso():
     repo = RepositorioFake()
     context = make_context(args="Wi-Fi mesh - 10/12/2099".split())
@@ -143,6 +142,7 @@ def test_adicionar_entrada_invalida_nao_salva():
 
 # ---------- /listar ----------
 
+
 def test_listar_so_do_chat():
     repo = RepositorioFake()
     repo.create(CHAT, "fone", date(2099, 1, 2))
@@ -156,6 +156,7 @@ def test_listar_so_do_chat():
 
 
 # ---------- /remover ----------
+
 
 def test_remover_pelo_indice_chama_remove_com_chat_e_id():
     repo = RepositorioFake()
@@ -192,6 +193,7 @@ def test_remover_falha_no_repositorio():
 
 # ---------- /testar_alerta ----------
 
+
 def test_testar_alerta_ignorado_fora_do_chat_do_dev():
     repo = RepositorioFake()
     context = make_context()
@@ -202,9 +204,7 @@ def test_testar_alerta_ignorado_fora_do_chat_do_dev():
 
 def test_testar_alerta_ignorado_sem_dev_configurado():
     context = make_context()
-    asyncio.run(
-        cmd_testar_alerta(make_update(), context, repository=RepositorioFake(), settings=make_settings(None))
-    )
+    asyncio.run(cmd_testar_alerta(make_update(), context, repository=RepositorioFake(), settings=make_settings(None)))
 
     context.bot.send_message.assert_not_awaited()
 
@@ -218,6 +218,7 @@ def test_testar_alerta_no_chat_do_dev_roda_checagem():
 
 
 # ---------- jobs ----------
+
 
 def test_checar_entregas_avisa_cada_chat_mesmo_se_um_falhar():
     amanha = datetime.now(TZ).date() + timedelta(days=1)
@@ -242,6 +243,7 @@ def test_limpar_encomendas_antigas_remove_antes_de_hoje():
 
 
 # ---------- error_handler ----------
+
 
 def _erro_com_traceback(mensagem: str) -> Exception:
     try:

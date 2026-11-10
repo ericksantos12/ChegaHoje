@@ -29,6 +29,7 @@ SP = ZoneInfo("America/Sao_Paulo")
 
 # ---------- parse_adicionar ----------
 
+
 def test_parse_simples():
     assert parse_adicionar("liquidificador - 27/12/2026", HOJE) == ("liquidificador", date(2026, 12, 27))
 
@@ -107,6 +108,7 @@ def test_selecionar_fora_do_intervalo(indice):
 
 # ---------- datas ----------
 
+
 def test_amanha_no_meio_do_dia():
     agora = datetime(2026, 11, 10, 12, 0, tzinfo=SP)
     assert data_hoje(agora, SP) == date(2026, 11, 10)
@@ -131,6 +133,7 @@ def test_datas_recusam_datetime_sem_fuso():
 
 
 # ---------- mensagens ----------
+
 
 class _Enc:
     def __init__(self, item, data):

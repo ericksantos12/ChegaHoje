@@ -1,4 +1,5 @@
 """Handler global de erros: loga e manda o traceback pro dev."""
+
 import json
 import traceback
 
@@ -30,6 +31,4 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE, *, s
         traceback=tb_string,
     )
 
-    await context.bot.send_message(
-        chat_id=settings.developer_chat_id, text=mensagem, parse_mode=ParseMode.HTML
-    )
+    await context.bot.send_message(chat_id=settings.developer_chat_id, text=mensagem, parse_mode=ParseMode.HTML)

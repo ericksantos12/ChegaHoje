@@ -16,7 +16,3 @@ logging.basicConfig(
 
 def get_logger(name: str = __name__) -> logging.Logger:
     return logging.getLogger(name)
-
-
-# Alias temporário para compatibilidade: use get_logger.
-logger = get_logger

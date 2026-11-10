@@ -1,4 +1,5 @@
 """Handlers dos comandos do bot. Só fazem a ponte Telegram <-> services/repositório."""
+
 from __future__ import annotations
 
 from datetime import datetime

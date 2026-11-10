@@ -1,4 +1,5 @@
 """Regras de negócio das encomendas: sem Telegram e sem banco, fácil de testar."""
+
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TypeVar
@@ -6,7 +7,7 @@ from typing import TypeVar
 FORMATO_DATA = "%d/%m/%Y"
 
 MSG_FORMATO_ERRADO = "opa, formato errado! usa assim: /adicionar nome do pacote - dd/mm/aaaa"
-MSG_DATA_ZOADA = "opa, data zoada! usa o formato certinho: dd/mm/aaaa (ex: 15/03/2026)"
+MSG_DATA_ZOADA = "opa, data zoada! usa o formato certinho: dd/mm/aaaa (ex: 15/03/2027)"
 MSG_DATA_PASSADA = "eita, essa data já passou! só aceito data de hoje pra frente."
 
 MSG_LISTA_VAZIA_REMOVER = "a lista já tá vazia, não tem nada pra remover!"
@@ -62,9 +63,7 @@ def selecionar_por_indice(encomendas: Sequence[T], indice: str | None) -> T:
         raise EntradaInvalida(MSG_NAO_EH_NUMERO) from None
 
     if numero < 1 or numero > len(encomendas):
-        raise EntradaInvalida(
-            f"tá viajando? só tem {len(encomendas)} itens na lista. digita um número válido."
-        )
+        raise EntradaInvalida(f"tá viajando? só tem {len(encomendas)} itens na lista. digita um número válido.")
 
     return encomendas[numero - 1]
 

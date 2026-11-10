@@ -1,4 +1,5 @@
 """Configuração central da aplicação, lida das variáveis de ambiente (.env)."""
+
 import os
 from dataclasses import dataclass
 from datetime import time

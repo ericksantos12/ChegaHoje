@@ -1,4 +1,5 @@
 """Textos que o bot manda no chat."""
+
 import html
 from collections.abc import Iterable
 from datetime import date, time
@@ -32,7 +33,7 @@ def mensagem_start(horario_alerta: time) -> str:
 ===== COMO USAR O BOT =====
 
 ➕ /adicionar [item] - [dd/mm/aaaa]
-    ex: /adicionar liquidificador - 27/02/2026
+    ex: /adicionar liquidificador - 27/02/2027
     (só aceito data de hoje pra frente)
 
 📋 /listar

@@ -1,4 +1,5 @@
 """Rotinas agendadas no job_queue."""
+
 from __future__ import annotations
 
 from datetime import datetime
