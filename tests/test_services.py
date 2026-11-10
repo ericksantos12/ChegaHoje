@@ -6,7 +6,6 @@ import pytest
 
 from services import (
     EntradaInvalida,
-    data_amanha,
     data_hoje,
     mensagem_erro,
     mensagem_lista,
@@ -63,22 +62,15 @@ def test_selecionar_fora_do_intervalo(indice):
 # ---------- datas ----------
 
 
-def test_amanha_no_meio_do_dia():
-    agora = datetime(2026, 11, 10, 12, 0, tzinfo=SP)
-    assert data_hoje(agora, SP) == date(2026, 11, 10)
-    assert data_amanha(agora, SP) == date(2026, 11, 11)
+def test_hoje_no_meio_do_dia():
+    assert data_hoje(datetime(2026, 11, 10, 12, 0, tzinfo=SP), SP) == date(2026, 11, 10)
 
 
-def test_amanha_usa_o_fuso_e_nao_utc():
+def test_hoje_usa_o_fuso_e_nao_utc():
     # 01:30 UTC do dia 11 ainda é 22:30 do dia 10 em SP
     agora = datetime(2026, 11, 11, 1, 30, tzinfo=UTC)
     assert data_hoje(agora, SP) == date(2026, 11, 10)
-    assert data_amanha(agora, SP) == date(2026, 11, 11)
-    assert data_amanha(agora, UTC) == date(2026, 11, 12)
-
-
-def test_amanha_virada_de_mes_e_ano():
-    assert data_amanha(datetime(2026, 12, 31, 23, 59, tzinfo=SP), SP) == date(2027, 1, 1)
+    assert data_hoje(agora, UTC) == date(2026, 11, 11)
 
 
 def test_datas_recusam_datetime_sem_fuso():

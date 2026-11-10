@@ -53,7 +53,7 @@ def main() -> None:
 
     app.add_error_handler(functools.partial(error_handler, settings=settings))
 
-    # rotina diária pra avisar das encomendas de amanhã (ALERT_TIME no fuso TIME_ZONE)
+    # rotina diária pra avisar das encomendas do dia (ALERT_TIME no fuso TIME_ZONE)
     app.job_queue.run_daily(
         functools.partial(checar_entregas, **deps),
         time=settings.alert_time,

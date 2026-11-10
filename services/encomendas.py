@@ -1,7 +1,7 @@
 """Regras de negócio das encomendas: sem Telegram e sem banco, fácil de testar."""
 
 from collections.abc import Sequence
-from datetime import date, datetime, timedelta, tzinfo
+from datetime import date, datetime, tzinfo
 from typing import TypeVar
 
 from services.erros import EntradaInvalida
@@ -39,11 +39,6 @@ def data_hoje(agora: datetime, tz: tzinfo) -> date:
     if agora.tzinfo is None:
         raise ValueError("agora precisa ter tzinfo")
     return agora.astimezone(tz).date()
-
-
-def data_amanha(agora: datetime, tz: tzinfo) -> date:
-    """Data de amanhã no fuso `tz`. `agora` precisa ter fuso (aware)."""
-    return data_hoje(agora, tz) + timedelta(days=1)
 
 
 def formatar_data(data: date) -> str:

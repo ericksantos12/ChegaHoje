@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-ChegaHoje is a Telegram bot (python-telegram-bot v22, async) that tracks expected package deliveries per chat and sends a daily reminder (default 08:00 America/Sao_Paulo) for packages due the next day. Data lives in PostgreSQL via SQLAlchemy 2.0, with Alembic migrations. Code identifiers, comments, and all user-facing bot messages are in Portuguese (bot replies use a casual, lowercase, slangy tone — keep it consistent).
+ChegaHoje is a Telegram bot (python-telegram-bot v22, async) that tracks expected package deliveries per chat and sends a daily reminder (default 08:00 America/Sao_Paulo) for packages due that same day. Data lives in PostgreSQL via SQLAlchemy 2.0, with Alembic migrations. Code identifiers, comments, and all user-facing bot messages are in Portuguese (bot replies use a casual, lowercase, slangy tone — keep it consistent).
 
 ## Commands
 
