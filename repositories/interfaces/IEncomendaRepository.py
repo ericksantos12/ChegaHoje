@@ -5,6 +5,12 @@ from db.models.encomenda import Encomenda
 
 
 class EncomendaRepository(Protocol):
+    """Contrato de acesso a dados de encomendas.
+
+    Implementações não devem lançar exceções de banco: em caso de erro,
+    registram no log e retornam o valor de falha documentado.
+    Os objetos retornados ficam desanexados da sessão (somente leitura).
+    """
 
     def create(
         self,
@@ -12,22 +18,22 @@ class EncomendaRepository(Protocol):
         item: str,
         data: date,
         dono: str = "Sem dono",
-    ) -> tuple[Optional[Encomenda], bool]:
-        """Returns (encomenda, created)."""
+    ) -> Optional[Encomenda]:
+        """Retorna a encomenda criada, ou None em caso de erro."""
         ...
 
-    def update(self, encomenda_id: int, **fields: object) -> bool:
-        """Returns True when an existing row is updated."""
-        ...
-
-    def remove(self, encomenda_id: int) -> bool:
-        """Returns True when an existing row is removed."""
+    def remove(self, chat_id: int, encomenda_id: int) -> bool:
+        """Remove a encomenda se ela pertencer ao chat. True se removeu."""
         ...
 
     def get_by_chat_id(self, chat_id: int) -> list[Encomenda]:
-        """Returns all encomendas for the given chat_id."""
+        """Encomendas do chat ordenadas por (data, id). [] em caso de erro."""
         ...
 
-    def get_by_date(self, date: str) -> list[Encomenda]:
-        """Returns the encomenda with the given date, or None if not found."""
+    def get_by_date(self, data: date) -> list[Encomenda]:
+        """Encomendas de todos os chats com a data informada. [] em caso de erro."""
+        ...
+
+    def remove_before(self, data: date) -> int:
+        """Remove encomendas com data anterior a `data`. Retorna quantas removeu (0 em erro)."""
         ...
