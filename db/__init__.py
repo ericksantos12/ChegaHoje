@@ -1,3 +1,3 @@
-from db.engine import SessionLocal
+from db.engine import create_session_factory
 
-__all__ = ["SessionLocal"]
+__all__ = ["create_session_factory"]

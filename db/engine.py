@@ -1,17 +1,12 @@
-import os
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from utils import logger
+from sqlalchemy.orm import Session, sessionmaker
 
-load_dotenv()
 
-logging = logger(__name__)
+def create_session_factory(database_url: str) -> sessionmaker[Session]:
+    """Cria o engine e a fábrica de sessões para a URL informada.
 
-if not os.getenv('DATABASE_URL'):
-    logging.error("DATABASE_URL is not set in the environment variables.")
-    raise ValueError("DATABASE_URL is required to connect to the database.")
-
-DATABASE_URL = os.getenv('DATABASE_URL')
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+    `expire_on_commit=False` mantém os objetos retornados utilizáveis
+    depois que a sessão é fechada.
+    """
+    engine = create_engine(database_url, pool_pre_ping=True)
+    return sessionmaker(bind=engine, expire_on_commit=False)
