@@ -32,6 +32,15 @@ alembic check
 
 CI (`.github/workflows/ci.yml`) runs `ruff check .` and `pytest` against a `postgres:16-alpine` service. The container's `entrypoint.sh` runs `alembic upgrade head` before `python main.py`, so migrations apply automatically on deploy. The repository tests create/drop the schema with `Base.metadata.create_all`, so point `TEST_DATABASE_URL` at a throwaway database.
 
+## Commits
+
+Every commit message follows [Gitmoji](https://gitmoji.dev) (use the `gitmoji` skill to pick the emoji). Match the existing history:
+
+- `:shortcode:` form, not the unicode emoji: `:sparkles: Add guided flow to /adicionar`
+- Exactly one gitmoji, then an imperative English subject starting with a capital letter, no trailing period, ≤ 72 chars
+- Optional body after a blank line explaining *why*
+- Common ones here: `:sparkles:` feature, `:bug:` fix, `:recycle:` refactor, `:memo:` docs, `:white_check_mark:` tests, `:card_file_box:` DB/migrations, `:wrench:` config, `:whale:` Docker, `:construction_worker:` CI, `:heavy_plus_sign:`/`:arrow_up:` deps, `:lock:` security, `:loud_sound:` logging, `:twisted_rightwards_arrows:` merges
+
 ## Configuration
 
 All runtime config goes through `config.get_settings()` (cached `Settings` dataclass, raises `ConfigError` on missing/invalid values; `main.py` exits 1 on it). Don't call `os.getenv` elsewhere — the exceptions are `migrations/env.py` (reads `DATABASE_URL` directly so Alembic doesn't need the bot token) and `utils/logger.py` (`LOG_LEVEL` at import). Variables: `TELEGRAM_TOKEN`, `DATABASE_URL` (required), `DEVELOPER_CHAT_ID` (gets error tracebacks and is the only chat allowed to run `/testar_alerta`), `TIME_ZONE`, `ALERT_TIME` (`HH:MM`), `LOG_LEVEL`. See `.env.example`.
