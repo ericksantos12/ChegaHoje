@@ -1,99 +1,72 @@
-import json
-import os
-import sys
-import traceback
 import functools
-
-from telegram.constants import ParseMode
-
-from repositories.SAEncomenda import SAEncomenda
-from usecases import adicionar_encomenda, listar_encomendas, remover_encomenda, testar_alerta, checar_entregas
-from utils.logger import logger
-
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from dotenv import load_dotenv
+import logging as stdlib_logging
+import sys
 from datetime import time
-from zoneinfo import ZoneInfo
 
-load_dotenv()
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-logging = logger(__name__)
+from config import ConfigError, get_settings
+from db import create_session_factory
+from handlers import (
+    adicionar,
+    checar_entregas,
+    error_handler,
+    limpar_encomendas_antigas,
+    listar,
+    remover,
+    start,
+    testar_alerta,
+)
+from repositories import SAEncomenda
+from utils import get_logger
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = f""" salve galera, sou um bot com o intuito de ajudar a anotar as encomendas que possuem previsão de chegar, pra dona luciene não ser pega de surpresa!
-    
-===== COMO USAR O BOT =====
+log = get_logger(__name__)
 
-➕ /adicionar [item] - [dd/mm/aaaa]
-    ex: /adicionar liquidificador - 27/02/2026
+# limpeza das encomendas antigas, de madrugada no fuso configurado
+HORARIO_LIMPEZA = time(hour=3, minute=0)
 
-📋 /listar
-    mostra a lista com todas as encomendas salvas.
 
-🗑️ /remover [número]
-    tira uma encomenda da lista (olha o número no /listar).
-
-⏰ todo dia às 08:00 eu vou avisar se tiver pacote chegando no dia seguinte!
-
-Duvidas ou feedbacks só direcionar ao meu chefe @ericksantos12
-"""
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=msg
-    )
-
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log the error and send a telegram message to notify the developer."""
-    # Log the error before we do anything else, so we can see it even if something breaks.
-    logging.error("Exception while handling an update:", exc_info=context.error)
-
-    # traceback.format_exception returns the usual python message about an exception, but as a
-    # list of strings rather than a single string, so we have to join them together.
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
-    tb_string = "".join(tb_list)
-
-    # Build the message with some markup and additional information about what happened.
-    # You might need to add some logic to deal with messages longer than the 4096-character limit.
-    update_str = update.to_dict() if isinstance(update, Update) else str(update)
-    message = (
-        "An exception was raised while handling an update\n"
-        f"<pre>update = {json.dumps(update_str, indent=2, ensure_ascii=False)}"
-        "</pre>\n\n"
-        f"<pre>context.chat_data = {str(context.chat_data)}</pre>\n\n"
-        f"<pre>context.user_data = {str(context.user_data)}</pre>\n\n"
-        f"<pre>{tb_string}</pre>"
-    )
-
-    # Finally, send the message
-    await context.bot.send_message(
-        chat_id=str(os.getenv("DEVELOPER_CHAT_ID")), text=message, parse_mode=ParseMode.HTML
-    )
-
-if __name__ == '__main__':
-    token = os.environ.get("TELEGRAM_TOKEN")
-    if not token:
-        logging.error("token não encontrado nas variáveis de ambiente.")
+def main() -> None:
+    try:
+        settings = get_settings()
+    except ConfigError as e:
+        log.error("configuração inválida: %s", e)
         sys.exit(1)
 
-    app = ApplicationBuilder().token(token).build()
+    stdlib_logging.getLogger().setLevel(settings.log_level)
+    # o httpx loga cada request em INFO, com o token do bot na URL
+    stdlib_logging.getLogger("httpx").setLevel(stdlib_logging.WARNING)
 
-    repository = SAEncomenda()
+    repository = SAEncomenda(create_session_factory(settings.database_url))
+    deps = {"repository": repository, "settings": settings}
+
+    app = ApplicationBuilder().token(settings.telegram_token).build()
 
     # handlers dos comandos
-    app.add_handler(CommandHandler('start', start))
-    app.add_handler(CommandHandler('adicionar', functools.partial(adicionar_encomenda, repository=repository)))
-    app.add_handler(CommandHandler('listar', functools.partial(listar_encomendas, repository=repository)))
-    app.add_handler(CommandHandler('remover', functools.partial(remover_encomenda, repository=repository)))
-    app.add_handler(CommandHandler('testar_alerta', functools.partial(testar_alerta, repository=repository)))
+    app.add_handler(CommandHandler("start", functools.partial(start, settings=settings)))
+    app.add_handler(CommandHandler("adicionar", functools.partial(adicionar, **deps)))
+    app.add_handler(CommandHandler("listar", functools.partial(listar, repository=repository)))
+    app.add_handler(CommandHandler("remover", functools.partial(remover, repository=repository)))
+    # só responde no chat do dev (DEVELOPER_CHAT_ID)
+    app.add_handler(CommandHandler("testar_alerta", functools.partial(testar_alerta, **deps)))
 
-    app.add_error_handler(error_handler)
+    app.add_error_handler(functools.partial(error_handler, settings=settings))
 
-    # rotina diária pra avisar das encomendas
-    # roda todo dia as 08:00 no fuso de SP
-    fuso_sp = ZoneInfo("America/Sao_Paulo")
-    horario_aviso = time(hour=8, minute=0, second=0, tzinfo=fuso_sp)
-    app.job_queue.run_daily(functools.partial(checar_entregas, repository=repository), time=horario_aviso)
+    # rotina diária pra avisar das encomendas de amanhã (ALERT_TIME no fuso TIME_ZONE)
+    app.job_queue.run_daily(
+        functools.partial(checar_entregas, **deps),
+        time=settings.alert_time,
+        name="checar_entregas",
+    )
+    # rotina diária pra apagar encomendas com data que já passou
+    app.job_queue.run_daily(
+        functools.partial(limpar_encomendas_antigas, **deps),
+        time=HORARIO_LIMPEZA.replace(tzinfo=settings.time_zone),
+        name="limpar_encomendas_antigas",
+    )
 
     app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
