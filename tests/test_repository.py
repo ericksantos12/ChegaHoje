@@ -147,3 +147,24 @@ def test_banco_indisponivel_retorna_valores_de_falha() -> None:
     assert repo.get_by_chat_id(SUPERGRUPO) == []
     assert repo.get_by_date(date(2026, 11, 11)) == []
     assert repo.remove_before(date(2026, 11, 11)) == 0
+    assert repo.update(SUPERGRUPO, 1, item="x") is None
+
+
+def test_update_altera_so_os_campos_informados(repo: SAEncomenda) -> None:
+    e = repo.create(SUPERGRUPO, "fone", date(2026, 12, 1), "Ana")
+
+    editada = repo.update(SUPERGRUPO, e.id, data=date(2026, 12, 5))
+    assert (editada.item, editada.data, editada.dono) == ("fone", date(2026, 12, 5), "Ana")
+
+    editada = repo.update(SUPERGRUPO, e.id, item="fone azul")
+    assert (editada.item, editada.data) == ("fone azul", date(2026, 12, 5))
+
+    (salva,) = repo.get_by_chat_id(SUPERGRUPO)
+    assert (salva.item, salva.data) == ("fone azul", date(2026, 12, 5))
+
+
+def test_update_nao_mexe_em_encomenda_de_outro_chat(repo: SAEncomenda) -> None:
+    e = repo.create(OUTRO_CHAT, "livro", date(2026, 12, 1))
+    assert repo.update(SUPERGRUPO, e.id, item="hackeado") is None
+    assert repo.update(SUPERGRUPO, 999999, item="x") is None
+    assert repo.get_by_chat_id(OUTRO_CHAT)[0].item == "livro"

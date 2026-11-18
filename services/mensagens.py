@@ -15,6 +15,7 @@ MSG_ERRO_SALVAR = (
     "tente de novo mais tarde por favor"
 )
 MSG_ERRO_REMOVER = "deu ruim ao remover a encomenda. tenta de novo mais tarde por favor"
+MSG_ERRO_EDITAR = "deu ruim ao editar a encomenda. tenta de novo mais tarde por favor"
 MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de hoje agr..."
 
 # fluxo guiado do /adicionar
@@ -54,6 +55,9 @@ def mensagem_start(horario_alerta: time) -> str:
 📋 /listar
     mostra a lista com todas as encomendas salvas.
 
+✏️ /editar [número] [novo nome] [nova data]
+    muda o nome e/ou a data (ex: /editar 2 sexta, /editar 2 fone azul).
+
 🗑️ /remover [número]
     tira uma encomenda da lista (ou usa os botões do /listar).
 
@@ -75,6 +79,15 @@ def mensagem_lista(encomendas: Iterable[_ItemComData]) -> str:
 
 def mensagem_item_adicionado(item: str, data: date) -> str:
     return f"===== ITEM ADICIONADO =====\n\nPACOTE:\n📦 {item}\n\nPREVISÃO DE ENTREGA:\n📅 {formatar_data(data)}"
+
+
+def mensagem_editado(item_antes: str, data_antes: date, item: str, data: date) -> str:
+    era_item = f" (era: {item_antes})" if item != item_antes else ""
+    era_data = f" (era: {formatar_data(data_antes)})" if data != data_antes else ""
+    return (
+        f"===== ITEM EDITADO =====\n\nPACOTE:\n📦 {item}{era_item}"
+        f"\n\nPREVISÃO DE ENTREGA:\n📅 {formatar_data(data)}{era_data}"
+    )
 
 
 def mensagem_pergunta_data(item: str) -> str:

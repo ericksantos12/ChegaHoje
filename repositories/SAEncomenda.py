@@ -51,6 +51,33 @@ class SAEncomenda(EncomendaRepository):
                 log.error("Erro ao remover encomenda %s do chat %s: %s", encomenda_id, chat_id, e)
                 return False
 
+    def update(
+        self,
+        chat_id: int,
+        encomenda_id: int,
+        *,
+        item: str | None = None,
+        data: date | None = None,
+    ) -> Encomenda | None:
+        with self._session_factory() as session:
+            try:
+                encomenda = session.scalar(
+                    select(Encomenda).where(Encomenda.id == encomenda_id, Encomenda.chat_id == chat_id)
+                )
+                if encomenda is None:
+                    log.warning("Encomenda %s não encontrada no chat %s para edição", encomenda_id, chat_id)
+                    return None
+                if item is not None:
+                    encomenda.item = item
+                if data is not None:
+                    encomenda.data = data
+                session.commit()
+                return encomenda
+            except SQLAlchemyError as e:
+                session.rollback()
+                log.error("Erro ao editar encomenda %s do chat %s: %s", encomenda_id, chat_id, e)
+                return None
+
     def get_by_chat_id(self, chat_id: int) -> list[Encomenda]:
         with self._session_factory() as session:
             try:

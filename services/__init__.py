@@ -6,8 +6,10 @@ from services.datas import (
     separar_item_e_data,
 )
 from services.encomendas import (
+    MSG_EDITAR_USO,
     data_hoje,
     formatar_data,
+    interpretar_edicao,
     selecionar_por_indice,
 )
 from services.erros import EntradaInvalida
@@ -16,6 +18,7 @@ from services.mensagens import (
     MSG_BOTAO_NAO_EH_TEU,
     MSG_CANCELADO,
     MSG_DIGITA_DATA,
+    MSG_ERRO_EDITAR,
     MSG_ERRO_REMOVER,
     MSG_ERRO_SALVAR,
     MSG_ITEM_VAZIO,
@@ -26,6 +29,7 @@ from services.mensagens import (
     mensagem_alerta,
     mensagem_confirmar_remocao,
     mensagem_desfeito,
+    mensagem_editado,
     mensagem_erro,
     mensagem_item_adicionado,
     mensagem_lista,
@@ -43,6 +47,8 @@ __all__ = [
     "MSG_DATA_PASSADA",
     "MSG_DATA_ZOADA",
     "MSG_DIGITA_DATA",
+    "MSG_EDITAR_USO",
+    "MSG_ERRO_EDITAR",
     "MSG_ERRO_REMOVER",
     "MSG_ERRO_SALVAR",
     "MSG_ITEM_VAZIO",
@@ -53,9 +59,11 @@ __all__ = [
     "data_hoje",
     "formatar_data",
     "interpretar_data",
+    "interpretar_edicao",
     "mensagem_alerta",
     "mensagem_confirmar_remocao",
     "mensagem_desfeito",
+    "mensagem_editado",
     "mensagem_erro",
     "mensagem_item_adicionado",
     "mensagem_lista",

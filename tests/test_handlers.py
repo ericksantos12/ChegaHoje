@@ -10,6 +10,7 @@ from telegram.constants import ParseMode
 from config import Settings
 from handlers import (
     checar_entregas,
+    editar,
     error_handler,
     limpar_encomendas_antigas,
     remover,
@@ -39,7 +40,7 @@ from handlers.lista import (
     botao_remover_sim,
     listar,
 )
-from services import MSG_ERRO_REMOVER, MSG_ERRO_SALVAR
+from services import MSG_EDITAR_USO, MSG_ERRO_EDITAR, MSG_ERRO_REMOVER, MSG_ERRO_SALVAR
 
 TZ = ZoneInfo("America/Sao_Paulo")
 CHAT = 111
@@ -86,6 +87,16 @@ class RepositorioFake:
 
     def get_by_date(self, data):
         return [e for e in self.encomendas if e.data == data]
+
+    def update(self, chat_id, encomenda_id, *, item=None, data=None):
+        encontrada = next((e for e in self.encomendas if e.chat_id == chat_id and e.id == encomenda_id), None)
+        if encontrada is None or getattr(self, "falhar", False):
+            return None
+        if item is not None:
+            encontrada.item = item
+        if data is not None:
+            encontrada.data = data
+        return encontrada
 
     def remove_before(self, data):
         self.remove_before_chamado_com = data
@@ -500,3 +511,76 @@ def test_botao_remover_nao_volta_pra_lista():
     asyncio.run(botao_remover_nao(update, make_context(), repository=repo))
     assert len(repo.encomendas) == 1
     assert "1. 📦 fone" in update.callback_query.edit_message_text.await_args.args[0]
+
+
+# ---------- /editar ----------
+
+
+def _editar(repo, args, chat_id=CHAT):
+    context = make_context(args=args)
+    asyncio.run(editar(make_update(chat_id=chat_id), context, repository=repo, settings=make_settings()))
+    return textos_enviados(context)
+
+
+def test_editar_so_a_data_pelo_indice_do_listar():
+    repo = RepositorioFake()
+    tardia = repo.create(CHAT, "tardia", date(2099, 5, 1))
+    repo.create(CHAT, "cedo", date(2099, 1, 1))
+
+    (texto,) = _editar(repo, ["2", "10/06/2099"])  # 2º do /listar = 'tardia'
+    assert (tardia.item, tardia.data) == ("tardia", date(2099, 6, 10))
+    assert "📅 10/06/2099 (era: 01/05/2099)" in texto
+
+
+def test_editar_so_o_nome():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 1))
+    (texto,) = _editar(repo, ["1", "fone", "azul"])
+    assert (e.item, e.data) == ("fone azul", date(2099, 1, 1))
+    assert "📦 fone azul (era: fone)" in texto
+
+
+def test_editar_nome_e_data():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 1))
+    _editar(repo, ["1", "Wi-Fi", "mesh", "20/12/2099"])
+    assert (e.item, e.data) == ("Wi-Fi mesh", date(2099, 12, 20))
+
+
+def test_editar_sem_argumentos_mostra_uso():
+    repo = RepositorioFake()
+    repo.create(CHAT, "fone", date(2099, 1, 1))
+    assert _editar(repo, []) == [MSG_EDITAR_USO]
+
+
+def test_editar_so_numero_mostra_uso_sem_mexer():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 1))
+    assert _editar(repo, ["1"]) == [MSG_EDITAR_USO]
+    assert (e.item, e.data) == ("fone", date(2099, 1, 1))
+
+
+def test_editar_lista_vazia():
+    assert _editar(RepositorioFake(), ["1", "sexta"]) == ["a lista já tá vazia, não tem nada pra editar!"]
+
+
+def test_editar_indice_invalido_e_data_passada_nao_mexem():
+    repo = RepositorioFake()
+    e = repo.create(CHAT, "fone", date(2099, 1, 1))
+    assert "só tem 1 itens" in _editar(repo, ["5", "sexta"])[0]
+    assert "já passou" in _editar(repo, ["1", "01/01/2020"])[0]
+    assert (e.item, e.data) == ("fone", date(2099, 1, 1))
+
+
+def test_editar_so_mexe_no_proprio_chat():
+    repo = RepositorioFake()
+    de_outro = repo.create(222, "de outro chat", date(2099, 1, 1))
+    assert _editar(repo, ["1", "hackeado"])[0] == "a lista já tá vazia, não tem nada pra editar!"
+    assert de_outro.item == "de outro chat"
+
+
+def test_editar_falha_no_repositorio():
+    repo = RepositorioFake()
+    repo.create(CHAT, "fone", date(2099, 1, 1))
+    repo.falhar = True
+    assert _editar(repo, ["1", "sexta"]) == [MSG_ERRO_EDITAR]

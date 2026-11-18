@@ -107,6 +107,10 @@ Once the bot is running, you can interact with it on Telegram using the followin
   - Send just `/adicionar` (or leave out the item or the date) and the bot asks for what is missing, with quick-pick date buttons. `/cancelar` aborts; the conversation also expires after 5 minutes.
   - The confirmation has an **↩️ desfazer** button to undo it.
 - `/listar`: Lists all saved packages, with a 🗑️ button per package to remove it (asks for confirmation).
+- `/editar [number] [new name] [new date]`: Edits a package by its list number. Same rules as `/adicionar` (date at the end):
+  - `/editar 2 sexta` changes only the date
+  - `/editar 2 fone azul` changes only the name
+  - `/editar 2 fone azul 20/12` changes both
 - `/remover [number]`: Removes a package using its list number (obtained from `/listar`).
   - Example: `/remover 2`
 

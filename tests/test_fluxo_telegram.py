@@ -5,16 +5,17 @@ callback, ordem dos handlers e conversa separada por usuário no mesmo grupo.
 """
 
 import asyncio
+import functools
 import itertools
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from telegram import Bot, CallbackQuery, Chat, Message, MessageEntity, Update, User
-from telegram.ext import Application
+from telegram.ext import Application, CommandHandler
 
 import handlers.adicionar
 from config import Settings
-from handlers import criar_handlers_adicionar, criar_handlers_lista
+from handlers import criar_handlers_adicionar, criar_handlers_lista, editar
 from repositories.interfaces import EncomendaRepository
 
 TZ = ZoneInfo("America/Sao_Paulo")
@@ -86,6 +87,16 @@ class RepositorioMemoria:
     def get_by_date(self, data):
         return [e for e in self.encomendas if e.data == data]
 
+    def update(self, chat_id, encomenda_id, *, item=None, data=None):
+        encontrada = next((e for e in self.encomendas if e.chat_id == chat_id and e.id == encomenda_id), None)
+        if encontrada is None or getattr(self, "falhar", False):
+            return None
+        if item is not None:
+            encontrada.item = item
+        if data is not None:
+            encontrada.data = data
+        return encontrada
+
     def remove_before(self, data):
         return 0
 
@@ -101,6 +112,9 @@ class Cenario:
         self.app = Application.builder().bot(self.bot).updater(None).build()
         self.app.add_handlers(criar_handlers_adicionar(repository=self.repo, settings=settings))
         self.app.add_handlers(criar_handlers_lista(repository=self.repo))
+        self.app.add_handler(
+            CommandHandler("editar", functools.partial(editar, repository=self.repo, settings=settings))
+        )
         self._ids = itertools.count(1)
 
     def _update(self, **kwargs):
@@ -239,5 +253,16 @@ def test_conversa_expira_e_avisa(monkeypatch):
 
         await c.mensagem(ANA, "amanhã")  # conversa já era
         assert c.repo.encomendas == []
+
+    rodar(fluxo)
+
+
+def test_editar_no_meio_de_uma_conversa_do_adicionar():
+    async def fluxo(c):
+        await c.mensagem(ANA, "/adicionar fone 10/12/2099")
+        await c.mensagem(ANA, "/adicionar")  # conversa aberta esperando o item
+        await c.mensagem(ANA, "/editar 1 fone azul 11/12/2099")
+        assert [(e.item, e.data) for e in c.repo.encomendas] == [("fone azul", date(2099, 12, 11))]
+        assert "ITEM EDITADO" in c.bot.enviadas[-1]["text"]
 
     rodar(fluxo)

@@ -11,6 +11,7 @@ from handlers import (
     checar_entregas,
     criar_handlers_adicionar,
     criar_handlers_lista,
+    editar,
     error_handler,
     limpar_encomendas_antigas,
     remover,
@@ -47,6 +48,7 @@ def main() -> None:
     # /adicionar (conversa guiada + botões de data e desfazer) e /listar (botões de remover)
     app.add_handlers(criar_handlers_adicionar(**deps))
     app.add_handlers(criar_handlers_lista(repository=repository))
+    app.add_handler(CommandHandler("editar", functools.partial(editar, **deps)))
     app.add_handler(CommandHandler("remover", functools.partial(remover, repository=repository)))
     # só responde no chat do dev (DEVELOPER_CHAT_ID)
     app.add_handler(CommandHandler("testar_alerta", functools.partial(testar_alerta, **deps)))
