@@ -26,6 +26,20 @@ class EncomendaRepository(Protocol):
         """Remove a encomenda se ela pertencer ao chat. True se removeu."""
         ...
 
+    def update(
+        self,
+        chat_id: int,
+        encomenda_id: int,
+        *,
+        item: Optional[str] = None,
+        data: Optional[date] = None,
+    ) -> Optional[Encomenda]:
+        """Atualiza os campos informados (None = não mexe) se a encomenda for do chat.
+
+        Retorna a encomenda atualizada, ou None se não existir nesse chat ou der erro.
+        """
+        ...
+
     def get_by_chat_id(self, chat_id: int) -> list[Encomenda]:
         """Encomendas do chat ordenadas por (data, id). [] em caso de erro."""
         ...

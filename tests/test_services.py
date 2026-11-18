@@ -5,9 +5,11 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from services import (
+    MSG_EDITAR_USO,
     EntradaInvalida,
-    data_amanha,
     data_hoje,
+    interpretar_edicao,
+    mensagem_editado,
     mensagem_erro,
     mensagem_lista,
     mensagem_start,
@@ -63,22 +65,15 @@ def test_selecionar_fora_do_intervalo(indice):
 # ---------- datas ----------
 
 
-def test_amanha_no_meio_do_dia():
-    agora = datetime(2026, 11, 10, 12, 0, tzinfo=SP)
-    assert data_hoje(agora, SP) == date(2026, 11, 10)
-    assert data_amanha(agora, SP) == date(2026, 11, 11)
+def test_hoje_no_meio_do_dia():
+    assert data_hoje(datetime(2026, 11, 10, 12, 0, tzinfo=SP), SP) == date(2026, 11, 10)
 
 
-def test_amanha_usa_o_fuso_e_nao_utc():
+def test_hoje_usa_o_fuso_e_nao_utc():
     # 01:30 UTC do dia 11 ainda é 22:30 do dia 10 em SP
     agora = datetime(2026, 11, 11, 1, 30, tzinfo=UTC)
     assert data_hoje(agora, SP) == date(2026, 11, 10)
-    assert data_amanha(agora, SP) == date(2026, 11, 11)
-    assert data_amanha(agora, UTC) == date(2026, 11, 12)
-
-
-def test_amanha_virada_de_mes_e_ano():
-    assert data_amanha(datetime(2026, 12, 31, 23, 59, tzinfo=SP), SP) == date(2027, 1, 1)
+    assert data_hoje(agora, UTC) == date(2026, 11, 11)
 
 
 def test_datas_recusam_datetime_sem_fuso():
@@ -136,3 +131,51 @@ def test_mensagem_start_usa_horario_configurado():
     texto = mensagem_start(time(7, 30))
     assert "todo dia às 07:30 eu vou avisar" in texto
     assert "/testar_alerta" not in texto
+
+
+# ---------- /editar ----------
+
+
+def test_selecionar_mensagens_citam_o_comando():
+    with pytest.raises(EntradaInvalida) as e:
+        selecionar_por_indice(ITENS, "x", comando="editar")
+    assert e.value.mensagem == "tem que ser número, po! ex: /editar 1"
+    with pytest.raises(EntradaInvalida) as e:
+        selecionar_por_indice([], "1", comando="editar")
+    assert e.value.mensagem == "a lista já tá vazia, não tem nada pra editar!"
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [
+        ("sexta", (None, date(2026, 11, 13))),
+        ("fone azul", ("fone azul", None)),
+        ("fone azul 20/12", ("fone azul", date(2026, 12, 20))),
+        ("Wi-Fi mesh - amanhã", ("Wi-Fi mesh", date(2026, 11, 11))),
+    ],
+)
+def test_interpretar_edicao(texto, esperado):
+    assert interpretar_edicao(texto, date(2026, 11, 10)) == esperado
+
+
+@pytest.mark.parametrize("texto", ["", "   "])
+def test_interpretar_edicao_vazia_mostra_uso(texto):
+    with pytest.raises(EntradaInvalida) as e:
+        interpretar_edicao(texto, date(2026, 11, 10))
+    assert e.value.mensagem == MSG_EDITAR_USO
+
+
+def test_interpretar_edicao_recusa_data_passada():
+    with pytest.raises(EntradaInvalida) as e:
+        interpretar_edicao("01/01/2020", date(2026, 11, 10))
+    assert "já passou" in e.value.mensagem
+
+
+def test_mensagem_editado_mostra_so_o_que_mudou():
+    texto = mensagem_editado("fone", date(2099, 1, 1), "fone", date(2099, 1, 5))
+    assert "📦 fone\n" in texto and "(era: fone)" not in texto
+    assert "📅 05/01/2099 (era: 01/01/2099)" in texto
+
+    texto = mensagem_editado("fone", date(2099, 1, 1), "fone azul", date(2099, 1, 1))
+    assert "📦 fone azul (era: fone)" in texto
+    assert texto.endswith("📅 01/01/2099")

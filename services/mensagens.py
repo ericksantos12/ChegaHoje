@@ -15,7 +15,8 @@ MSG_ERRO_SALVAR = (
     "tente de novo mais tarde por favor"
 )
 MSG_ERRO_REMOVER = "deu ruim ao remover a encomenda. tenta de novo mais tarde por favor"
-MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de amanhã agr..."
+MSG_ERRO_EDITAR = "deu ruim ao editar a encomenda. tenta de novo mais tarde por favor"
+MSG_TESTAR_ALERTA = "⚙️ forçando a checagem de entregas de hoje agr..."
 
 # fluxo guiado do /adicionar
 MSG_PERGUNTA_ITEM = "qual o pacote? 📦"
@@ -54,10 +55,13 @@ def mensagem_start(horario_alerta: time) -> str:
 📋 /listar
     mostra a lista com todas as encomendas salvas.
 
+✏️ /editar [número] [novo nome] [nova data]
+    muda o nome e/ou a data (ex: /editar 2 sexta, /editar 2 fone azul).
+
 🗑️ /remover [número]
     tira uma encomenda da lista (ou usa os botões do /listar).
 
-⏰ todo dia às {horario_alerta:%H:%M} eu vou avisar se tiver pacote chegando no dia seguinte!
+⏰ todo dia às {horario_alerta:%H:%M} eu vou avisar se tiver pacote chegando no dia!
 
 Duvidas ou feedbacks só direcionar ao meu chefe @ericksantos12
 """
@@ -75,6 +79,15 @@ def mensagem_lista(encomendas: Iterable[_ItemComData]) -> str:
 
 def mensagem_item_adicionado(item: str, data: date) -> str:
     return f"===== ITEM ADICIONADO =====\n\nPACOTE:\n📦 {item}\n\nPREVISÃO DE ENTREGA:\n📅 {formatar_data(data)}"
+
+
+def mensagem_editado(item_antes: str, data_antes: date, item: str, data: date) -> str:
+    era_item = f" (era: {item_antes})" if item != item_antes else ""
+    era_data = f" (era: {formatar_data(data_antes)})" if data != data_antes else ""
+    return (
+        f"===== ITEM EDITADO =====\n\nPACOTE:\n📦 {item}{era_item}"
+        f"\n\nPREVISÃO DE ENTREGA:\n📅 {formatar_data(data)}{era_data}"
+    )
 
 
 def mensagem_pergunta_data(item: str) -> str:
@@ -95,7 +108,7 @@ def mensagem_removido(item: str) -> str:
 
 def mensagem_alerta(item: str, data: date) -> str:
     return (
-        f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{item}' tá previsto pra chegar AMANHÃ ({formatar_data(data)})!"
+        f"🚨 ALERTA DE ENTREGA 🚨\n\n📦 '{item}' tá previsto pra chegar HOJE ({formatar_data(data)})!"
         "\n\nFiquem espertos pra receber o carteiro."
     )
 

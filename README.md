@@ -32,13 +32,13 @@
 ## 🧐 About <a name = "about"></a>
 **ChegaHoje** is a Telegram bot designed to help users keep track of their incoming packages. It allows users to register expected delivery dates and receive notifications.
 
-The main goal is to prevent surprises by reminding the user at 08:00 AM if a package is scheduled to arrive the next day.
+The main goal is to prevent surprises by reminding the user at 08:00 AM if a package is scheduled to arrive that same day.
 
 ## ✨ Features <a name = "features"></a>
 - **Add Package**: Register a new package with a description and expected arrival date.
 - **List Packages**: View a list of all currently tracked packages.
 - **Remove Package**: Delete a package from the tracking list.
-- **Daily Reminders**: Automatically checks for packages arriving the next day and sends a notification at 08:00 AM.
+- **Daily Reminders**: Automatically checks for packages arriving that day and sends a notification at 08:00 AM.
 
 ## 🛠️ Tech Stack <a name = "tech_stack"></a>
 - **Language**: [Python 3.12+](https://www.python.org/)
@@ -107,6 +107,10 @@ Once the bot is running, you can interact with it on Telegram using the followin
   - Send just `/adicionar` (or leave out the item or the date) and the bot asks for what is missing, with quick-pick date buttons. `/cancelar` aborts; the conversation also expires after 5 minutes.
   - The confirmation has an **↩️ desfazer** button to undo it.
 - `/listar`: Lists all saved packages, with a 🗑️ button per package to remove it (asks for confirmation).
+- `/editar [number] [new name] [new date]`: Edits a package by its list number. Same rules as `/adicionar` (date at the end):
+  - `/editar 2 sexta` changes only the date
+  - `/editar 2 fone azul` changes only the name
+  - `/editar 2 fone azul 20/12` changes both
 - `/remover [number]`: Removes a package using its list number (obtained from `/listar`).
   - Example: `/remover 2`
 
